@@ -1,7 +1,7 @@
 /**
  * @file    vision_protocol.h
  * @brief   高复用视觉通信协议 V4.0 - 配置驱动型串口协议栈
- * @author  AI Assistant
+ * @author  万梓豪
  * @date    2026-04-01
  * @version 4.0
  *
@@ -84,8 +84,8 @@ typedef struct {
  * @note  与配置表解耦，包含所有可能字段。未配置的字段保持为0。
  */
 typedef struct {
+    uint8_t     valid;
     /*---- 标准视觉字段（本次电赛使用）----*/
-    uint8_t     valid;          ///< 数据有效性标志
     int16_t     dx;             ///< X方向偏差（像素）
     int16_t     dy;             ///< Y方向偏差（像素）
     uint8_t     type;           ///< 目标类型
@@ -121,13 +121,13 @@ extern uint8_t g_vision_rx_buf[VISION_RX_BUF_SIZE];
 
 /**
  * @brief 第二次积分赛 - 13字节帧长
- * @details 字段顺序：dx(2) + dy(2) + valid(1) + type(1) + phase(2) + rpm(2) + chk(1)
+ * @details 字段顺序：CMD(1) + DX(2) + DY(2) + TYPE(1) + PHASE(2) + RPM(2) + CHK(1)
  * @usage   Vision_SelectConfig("QD4310");
  */
 extern const FrameConfig_t g_config_QD4310;
 
 /**
- * @brief 第一次积分赛配置 - 5字节帧长（仅dx+valid）
+ * @brief 第一次积分赛配置 - 字段顺序：CMD(1) + DX(2) + CHK(1) = 6字节（含帧头）
  * @usage   Vision_SelectConfig("LineFollow");
  */
 extern const FrameConfig_t g_config_linefollow;

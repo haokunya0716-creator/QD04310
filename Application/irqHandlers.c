@@ -17,6 +17,7 @@
 #include "app_QD4310_PID.h"
 #include "tim.h"
 #include "App_QD4310_PID/app_QD4310_PID.h"
+#include "Laser/laser.h"
 
 //把任务状态枚举放到前面，供全局使用，当串口屏的按键按下时，会对应到相应的状态，从而执行不同的任务
 typedef enum {
@@ -37,6 +38,7 @@ extern uint8_t hmi_rx_buf[64];
 //接口初始化函数
 void DebugTask_Init() {
     //VOFA_Init(&huart6); // 初始化VOFA+协议，绑定USART6
+    Laser_Init();
     QD4310_PID_Init();//初始化无刷电机
     HMI_Init();         //串口屏初始化
     Vision_Init(&huart6);//初始化相机串口
@@ -47,10 +49,9 @@ void DebugTask_Init() {
     HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);//开启蜂鸣器pwm
     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);//把蜂鸣器占空比设为0
 
-
 }
 
-
+int i = 0;
 uint8_t task1_flag = 0;
 /**
  * @简介： 核心任务代码,记得之后把所有的任务封装成函数（函数的编写可以单独创建一个mytask.c/.h文件）写在这里的case里
@@ -63,8 +64,12 @@ void DebugTask_Run() {
             switch (sys_state) {
             case SYS_IDLE:
                     // 待机或急停：电机速度设为0
+                    // 待机或急停：电机速度设为0
+                    QD4310_SetSpeed(&YawMotor, 0);
+                    QD4310_SetSpeed(&PitchMotor, 0);
                     break;
             case SYS_TASK1:
+
                     // 自动识别并对准A4纸中心，保持5s
                      //自己看任务编写
 
@@ -95,21 +100,28 @@ void DebugTask_Run() {
             }
         PERIODIC_END
 
-    //VOFA+显示波形（记住要开justfloat协议以及浮点数输出）
-    //当然这里已经开了
-    PERIODIC_START(VofaTask, 20)
-        // 参数1: 当前角度 (乘以 RAD 转回 0~360度，VOFA上看波形更直观)
-        // 参数2: 当前转速 (rpm)
-        // 参数3: 当前电流 (A)
-    VOFA_Send_JustFloat(YawMotor.angle * RAD, YawMotor.speed, YawMotor.current);
-    PERIODIC_END
+    // //VOFA+显示波形（记住要开justfloat协议以及浮点数输出）
+    // //当然这里已经开了
+    // PERIODIC_START(VofaTask, 20)
+    //     // 参数1: 当前角度 (乘以 RAD 转回 0~360度，VOFA上看波形更直观)
+    //     // 参数2: 当前转速 (rpm)
+    //     // 参数3: 当前电流 (A)
+    // VOFA_Send_JustFloat(YawMotor.angle * RAD, YawMotor.speed, YawMotor.current);
+    // PERIODIC_END
+
 
     //串口屏(USART1)显示数据
     PERIODIC_START(HMITask, 100)
+    int16_t dx, dy;
+    __disable_irq();
+    dx = g_vision.dx;
+    dy = g_vision.dy;
+    __enable_irq();
     // 获取电机的当前角度，并转为度数显示
-    HMI_SetFloat("Yaw_Angle", YawMotor.angle * RAD);// 更新 Yaw_Angle，把弧度制改成角度单位，人性化
-    HMI_SetFloat("Pitch_Angle", PitchMotor.angle * RAD);
-    //HMI_SetFloat("t2", pitch_deg); // 更新 Pitch_Angle
+    HMI_SetFloat("Yaw_Angle", YawMotor.angle * RAD); // 更新 Yaw_Angle，把弧度制改成角度单位，人性化
+    HMI_SetFloat("Pitch_Angle", PitchMotor.angle * RAD); // 更新 Pitch_Angle
+    HMI_SetFloat("Dx",dx);
+    HMI_SetFloat("Dy",dy);
     PERIODIC_END
 }
 //初始化CAN配置
@@ -157,19 +169,34 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (huart == &huart1) {
         hmi_rx_buf[Size] = '\0';
         char* buf = (char*)hmi_rx_buf;
+        // // 先处理滑块（因为它有特定前缀，不会和其他指令冲突）
+        // int brightness = ParseSliderValue(buf);
+        // if (brightness >= 60) {
+        //     Laser_SetBrightness(brightness);
+        // }
+        for (int i = 0; i < Size - 5; i++) {
+            if (hmi_rx_buf[i] == 0xAA && hmi_rx_buf[i+1] == 0x55) {
+                uint8_t brightness = hmi_rx_buf[i+2]; // 直接读取亮度值 60-100
+                if (brightness >= 60 && brightness <= 100) {
+                    Laser_SetBrightness(brightness);
+                }
+                break;
+            }
+        }
 
         if (strstr(buf, "CMD_T1"))      { sys_state = SYS_TASK1; HMI_SetText("State", "Task 1"); }
         else if (strstr(buf, "CMD_T2")) { sys_state = SYS_TASK2; HMI_SetText("State", "Task 2"); }
         else if (strstr(buf, "CMD_T3")) { sys_state = SYS_TASK3; HMI_SetText("State", "Task 3"); }
         else if (strstr(buf, "CMD_T4")) { sys_state = SYS_TASK4; HMI_SetText("State", "Task 4"); }
         else if (strstr(buf, "CMD_T5")) { sys_state = SYS_TASK5; HMI_SetText("State", "Task 5"); }
-        else if (strstr(buf, "CMD_DISABLE")) { sys_state = SYS_DISABLE; HMI_SetText("State", "DISABLE"); }
-        else if (strstr(buf, "CMD_ENABLE")) { sys_state = SYS_DISABLE; HMI_SetText("State", "ENABLE"); }
+        else if (strstr(buf, "CMD_DISABLE")){ sys_state = SYS_DISABLE;HMI_SetText("State", "DISABLE");}
+        else if (strstr(buf, "CMD_ENABLE")){ sys_state = SYS_ENABLE;HMI_SetText("State", "ENABLE");}
+        // 激光笔开关
+        else if (strstr(buf, "LASER_ON"))  Laser_On();
+        else if (strstr(buf, "LASER_OFF")) Laser_Off();
         else if (strstr(buf, "CMD_STOP")) {
             sys_state = SYS_IDLE;
-            QD4310_SetSpeed(&YawMotor, 0);
-            QD4310_SetSpeed(&PitchMotor, 0);
-            HMI_SetText("State", "EMERGENCY STOP");
+            HMI_SetText("State", "STOP");
         }
 
         HAL_UARTEx_ReceiveToIdle_DMA(&huart1, hmi_rx_buf, sizeof(hmi_rx_buf));
@@ -178,8 +205,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
         Vision_RxCallback(huart, Size);  // 调用协议栈处理
     }
 }
-
-
 
 
 

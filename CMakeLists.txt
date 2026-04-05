@@ -76,6 +76,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Application/App_QD4310_PID/app_QD4310_PID.h
         Libraries/Button/button.c
         Libraries/Button/button.h
+        Libraries/Laser/laser.c
+        Libraries/Laser/laser.h
         Test/buzzer_test.c
         Test/buzzer_test.h
         Test/delay_test.c
@@ -86,6 +88,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+        Libraries/Laser
         Libraries/QD4310
         Libraries/Delay
         Libraries/Button

@@ -3,6 +3,8 @@
 //
 
 #include "app_QD4310_PID.h"
+
+#include "irqHandlers.h"
 #include "task.h"
 #include "QD4310.h"
 #include "vision_protocol.h"
@@ -18,7 +20,7 @@ static PID_TypeDef pid_motor_yaw; // yaw调速系统的PID控制器
 
 void QD4310_PID_Init(void) {
 
-    //////////////////////5    CAN_InterfaceInit(); //CAN初始化
+    CAN_InterfaceInit(); //CAN初始化
     QD4310_Init(&YawMotor, &hcan1, 0x00); // 初始化云台yaw电机
     QD4310_Init(&PitchMotor, &hcan1, 0x01);//初始化pitch轴
     HAL_Delay(100);
@@ -32,7 +34,6 @@ void QD4310_PID_Init(void) {
     PID_LimitConfig(&pid_motor_yaw, +1000.0f, -1000.0f);
 }
 void QD4310_PID_Pro(void) {
-    PERIODIC_START(QD4310PID,2)//执行周期为2ms，500Hz
     QD4310_Vaild_Update();
     QD4310_PID_Update_yaw(&pid_motor_yaw);//先更新yaw轴和pitch轴的数据
     QD4310_PID_Update_pitch(&pid_motor_pitch);
@@ -49,7 +50,7 @@ void QD4310_PID_Pro(void) {
         float pitch_speed = PID_Compute(&pid_motor_pitch, laser_current_pitch);
         QD4310_SetSpeed(&PitchMotor,pitch_speed);
     }
-    PERIODIC_END
+
 }
 
 

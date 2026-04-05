@@ -102,8 +102,8 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM5_Init();
   MX_TIM12_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
   DebugTask_Init();//初始化的东西全在这里了，自己检查去吧
   //Delay_Test();GetUs也能正常用
   //Button_Test();按键也能正常用（没测试长按）
@@ -114,6 +114,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
     DebugTask_Run();
     // if (task1_flag == 1) {
     //
