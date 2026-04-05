@@ -26,6 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "app_QD4310_PID.h"
 #include "button_test.h"
 #include "buzzer_test.h"
 #include "delay_test.h"
@@ -103,7 +104,7 @@ int main(void)
   MX_TIM12_Init();
   /* USER CODE BEGIN 2 */
 
-  DebugTask_Init();
+  DebugTask_Init();//初始化的东西全在这里了，自己检查去吧
   //Delay_Test();GetUs也能正常用
   //Button_Test();按键也能正常用（没测试长按）
   //Buzzer_Test();蜂鸣器是可以响的！
@@ -113,8 +114,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
     DebugTask_Run();
+    // if (task1_flag == 1) {
+    //
+    // }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -39,7 +39,7 @@ void DebugTask_Init() {
     //VOFA_Init(&huart6); // 初始化VOFA+协议，绑定USART6
     QD4310_PID_Init();//初始化无刷电机
     HMI_Init();         //串口屏初始化
-
+    Vision_Init(&huart6);//初始化相机串口
     App_Button_Init();//初始化按键
     HAL_TIM_Base_Start_IT(&htim12);//开启定时器12中断，用来扫描按键
     HAL_TIM_Base_Start_IT(&htim11);//开启定时器11中断，用来微秒级计时
@@ -49,6 +49,9 @@ void DebugTask_Init() {
 
 
 }
+
+
+uint8_t task1_flag = 0;
 /**
  * @简介： 核心任务代码,记得之后把所有的任务封装成函数（函数的编写可以单独创建一个mytask.c/.h文件）写在这里的case里
  * 记住不要命名为task.c/.h，有命名风险,嘿嘿我已经建了
@@ -56,7 +59,7 @@ void DebugTask_Init() {
  */
 void DebugTask_Run() {
         //电机控制任务 (100Hz),根据屏幕按键的状态来决定电机干嘛
-        PERIODIC_START(MotorTask, 10)
+        PERIODIC_START(MotorTask, 2)
             switch (sys_state) {
             case SYS_IDLE:
                     // 待机或急停：电机速度设为0
@@ -64,7 +67,7 @@ void DebugTask_Run() {
             case SYS_TASK1:
                     // 自动识别并对准A4纸中心，保持5s
                      //自己看任务编写
-                    QD4310_SetLowSpeed(&YawMotor, 10);
+
                     break;
             case SYS_TASK2:
                     // 顺序打靶逻辑 (圆形->方形->星形)

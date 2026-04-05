@@ -42,9 +42,9 @@
  */
 typedef enum {
     FIELD_NONE = 0,         ///< 保留/未使用
+    FIELD_VALID,            ///< 数据有效标志（0=无效，1=有效，2=丢失，3=带相位）
     FIELD_DX,               ///< 激光/目标X方向偏差（像素，有符号）
     FIELD_DY,               ///< 激光/目标Y方向偏差（像素，有符号）
-    FIELD_VALID,            ///< 数据有效标志（0=无效，1=有效，2=丢失，3=带相位）
     FIELD_TYPE,             ///< 目标类型（0=无，1=圆，3=三角，4=方等）
     FIELD_PHASE,            ///< 旋转相位（0-65535对应0-360°，无符号）
     FIELD_RPM,              ///< 转速（rpm，有符号，正转/反转）
@@ -85,9 +85,9 @@ typedef struct {
  */
 typedef struct {
     /*---- 标准视觉字段（本次电赛使用）----*/
+    uint8_t     valid;          ///< 数据有效性标志
     int16_t     dx;             ///< X方向偏差（像素）
     int16_t     dy;             ///< Y方向偏差（像素）
-    uint8_t     valid;          ///< 数据有效性标志
     uint8_t     type;           ///< 目标类型
     uint16_t    phase;          ///< 旋转相位（0-65535）
     int16_t     rpm;            ///< 转速（rpm，有符号）

@@ -7,3 +7,6 @@
 #include "pid.h"
 #include "HMI.h"
 #include <math.h>
+void Task1_Proc(void) {
+
+}

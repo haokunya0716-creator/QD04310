@@ -9,6 +9,7 @@
 #include "delay.h"
 void QD4310_PID_Init(void);
 void QD4310_PID_Pro(void);
+void QD4310_Vaild_Update(void);
 void QD4310_PID_Update_yaw(PID_TypeDef *PID);
 void QD4310_PID_Update_pitch(PID_TypeDef *PID);
 #endif //QD4310_APP_QD4310_PID_H

@@ -5,12 +5,13 @@
 #include "app_QD4310_PID.h"
 #include "task.h"
 #include "QD4310.h"
+#include "vision_protocol.h"
 
-
-volatile float laser_current_yaw;//激光笔现在的水平坐标
-volatile float laser_current_yaw_target;//设定的水平目标
-volatile float laser_current_pitch;//现在的竖直位置
-volatile float laser_current_pitch_target;//设定的竖直位置
+uint8_t valid = 0;
+volatile float laser_current_yaw = 0;//激光笔现在的水平坐标
+volatile float laser_current_yaw_target = 0;//设定的水平目标
+volatile float laser_current_pitch = 0;//现在的竖直位置
+volatile float laser_current_pitch_target = 0;//设定的竖直位置
 
 static PID_TypeDef pid_motor_pitch; // pitch电机调速系统的PID控制器
 static PID_TypeDef pid_motor_yaw; // yaw调速系统的PID控制器
@@ -21,8 +22,8 @@ void QD4310_PID_Init(void) {
     QD4310_Init(&YawMotor, &hcan1, 0x00); // 初始化云台yaw电机
     QD4310_Init(&PitchMotor, &hcan1, 0x01);//初始化pitch轴
     HAL_Delay(100);
-    QD4310_Enable(&YawMotor);// 使能电机
-    QD4310_Enable(&PitchMotor);
+    // QD4310_Enable(&YawMotor);// 使能电机
+    // QD4310_Enable(&PitchMotor);
     HAL_Delay(20);
 
     PID_Init(&pid_motor_pitch, 0, 0, 0);
@@ -32,28 +33,47 @@ void QD4310_PID_Init(void) {
 }
 void QD4310_PID_Pro(void) {
     PERIODIC_START(QD4310PID,2)//执行周期为2ms，500Hz
-
+    QD4310_Vaild_Update();
     QD4310_PID_Update_yaw(&pid_motor_yaw);//先更新yaw轴和pitch轴的数据
     QD4310_PID_Update_pitch(&pid_motor_pitch);
     //再进行pid计算
-    float yaw_speed = PID_Compute(&pid_motor_yaw, laser_current_yaw);
-    QD4310_SetSpeed(&YawMotor,yaw_speed);
+    if (valid == 0) {
+        QD4310_SetSpeed(&YawMotor,0);
+        QD4310_SetSpeed(&PitchMotor,0);
+        PID_Reset(&pid_motor_yaw);
+        PID_Reset(&pid_motor_pitch);
+    }else {
+        float yaw_speed = PID_Compute(&pid_motor_yaw, laser_current_yaw);
+        QD4310_SetSpeed(&YawMotor,yaw_speed);
 
-    float pitch_speed = PID_Compute(&pid_motor_pitch, laser_current_pitch);
-    QD4310_SetSpeed(&PitchMotor,pitch_speed);
-
+        float pitch_speed = PID_Compute(&pid_motor_pitch, laser_current_pitch);
+        QD4310_SetSpeed(&PitchMotor,pitch_speed);
+    }
     PERIODIC_END
 }
-void QD4310_PID_Update_yaw(PID_TypeDef *PID) {
-    laser_current_yaw = 1111111111111111111;//视觉发送的坐标
 
-    laser_current_yaw_target = 11111111111111111111;//视觉发送的坐标
+
+
+void QD4310_Vaild_Update(void) {
+    __disable_irq();
+    valid = g_vision.valid;//有效值，0代表相机未识别到图形
+    __enable_irq();
+}
+void QD4310_PID_Update_yaw(PID_TypeDef *PID) {
+    __disable_irq();
+    laser_current_yaw = g_vision.dx;
+    __enable_irq();
+    laser_current_yaw_target = 0.0f;//视觉发送的坐标
+
     PID->SP = laser_current_yaw_target;
 }
 void QD4310_PID_Update_pitch(PID_TypeDef *PID) {
-    laser_current_pitch = 11111111111111111111;
+    __disable_irq();
+    laser_current_pitch = g_vision.dy;
+    __enable_irq();
 
-    laser_current_pitch_target = 11111111111111111111;
+    laser_current_pitch_target = 0.0f;
+
     PID->SP = laser_current_pitch_target;
 }
 
