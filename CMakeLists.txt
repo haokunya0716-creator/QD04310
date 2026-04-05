@@ -35,7 +35,6 @@ enable_language(C ASM)
 add_executable(${CMAKE_PROJECT_NAME}
 
 
-
 )
 
 # Add STM32CubeMX generated sources
@@ -73,14 +72,15 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Application/Protocol/vision_protocol.h
         Application/App_Usartptint/app_usart.c
         Application/App_Usartptint/app_usart.h
-        Application/App_QD4310/App_QD4310.c
-        Application/App_QD4310/App_QD4310.h
+        Application/App_QD4310_PID/app_QD4310_PID.c
+        Application/App_QD4310_PID/app_QD4310_PID.h
         Libraries/Button/button.c
         Libraries/Button/button.h
         Test/buzzer_test.c
         Test/buzzer_test.h
         Test/delay_test.c
         Test/delay_test.h
+
        )
 
 # Add include paths
@@ -98,8 +98,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Application/Protocol
         Application/App_Button
         Application/App_Usartptint
-        Application/App_QD4310
-
+        Application/App_QD4310_PID
         Test
 )
 

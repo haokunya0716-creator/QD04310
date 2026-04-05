@@ -1,10 +1,12 @@
-//
-// Created by ASUS on 2026/3/28.
-//
+/*
+* pid.h
+ *
+ *  Created on: 2025年5月7日
+ *      Author: gaoxu
+ */
 
-#ifndef QD4310_PID_H
-#define QD4310_PID_H
-
+#ifndef INC_PID_H_
+#define INC_PID_H_
 
 #include <stdint.h>
 
@@ -19,6 +21,12 @@ typedef struct
     float err_k_1; // err[k-1]，上次运行PID时的误差
     float err_int_k_1; // err_int[k-1]，上次运行的积分值
 
+    // --- 新增滤波相关变量 ---
+    float COd_1;   // 存储上一次滤波后的微分项结果
+    float alpha;        // 滤波系数 (取值范围 0.0 到 1.0)
+    // -----------------------
+
+
     float UpperLimit; // 上限
     float LowerLimit; // 下限
 }PID_TypeDef;
@@ -28,6 +36,8 @@ void PID_ChangeSP(PID_TypeDef *PID, float SP);
 float PID_Compute(PID_TypeDef *PID, float FB);
 void PID_LimitConfig(PID_TypeDef *PID, float Upper, float Lower);
 void PID_Reset(PID_TypeDef *PID);
+void PID_Set_Alpha(PID_TypeDef *PID, float alpha);
 
 
-#endif //QD4310_PID_H
+
+#endif /* INC_PID_H_ */

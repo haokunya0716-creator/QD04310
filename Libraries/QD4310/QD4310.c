@@ -6,6 +6,10 @@
 
 #include <math.h>
 
+//创建电机对象结构体，这里暂时先创建Yaw轴电机
+QD4310_t YawMotor;
+QD4310_t PitchMotor;
+
 // 简单的钳位宏，替代 std::clamp，限定x的最小值min和最大值max
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 

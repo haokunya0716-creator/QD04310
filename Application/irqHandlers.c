@@ -14,7 +14,9 @@
 #include "mytask.h"
 #include "vision_protocol.h"
 #include "app_button.h"
+#include "app_QD4310_PID.h"
 #include "tim.h"
+#include "App_QD4310_PID/app_QD4310_PID.h"
 
 //把任务状态枚举放到前面，供全局使用，当串口屏的按键按下时，会对应到相应的状态，从而执行不同的任务
 typedef enum {
@@ -31,13 +33,11 @@ volatile float pid_p = 0;
 SystemState_t sys_state = SYS_IDLE; // 默认开机待机
 //声明外部的屏幕接收缓存 (在 HMI.c 里定义)
 extern uint8_t hmi_rx_buf[64];
-//创建电机对象结构体，这里暂时先创建Yaw轴电机
-QD4310_t YawMotor;
-QD4310_t PitchMotor;
+
 //接口初始化函数
 void DebugTask_Init() {
     //VOFA_Init(&huart6); // 初始化VOFA+协议，绑定USART6
-
+    QD4310_PID_Init();//初始化无刷电机
     HMI_Init();         //串口屏初始化
 
     App_Button_Init();//初始化按键
@@ -47,13 +47,7 @@ void DebugTask_Init() {
     HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);//开启蜂鸣器pwm
     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);//把蜂鸣器占空比设为0
 
-    //////////////////////5    CAN_InterfaceInit(); //CAN初始化
-    QD4310_Init(&YawMotor, &hcan1, 0x00); // 初始化云台yaw电机
-    QD4310_Init(&PitchMotor, &hcan1, 0x01);
-    HAL_Delay(100);
-    QD4310_Enable(&YawMotor);// 使能电机
-    QD4310_Enable(&PitchMotor);
-    HAL_Delay(20);
+
 }
 /**
  * @简介： 核心任务代码,记得之后把所有的任务封装成函数（函数的编写可以单独创建一个mytask.c/.h文件）写在这里的case里

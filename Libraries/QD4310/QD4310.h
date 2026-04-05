@@ -28,7 +28,9 @@ typedef struct
     float angle; //默认单位弧度
     float current; //电流-10A-10A
 }QD4310_t;
-
+//ectern结构体变量来让外界能访问
+extern QD4310_t YawMotor;
+extern QD4310_t PitchMotor;
 //电机命令枚举结构体
 typedef enum
 {
