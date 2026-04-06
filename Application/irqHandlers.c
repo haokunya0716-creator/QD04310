@@ -38,13 +38,27 @@ extern uint8_t hmi_rx_buf[64];
 //接口初始化函数
 void DebugTask_Init() {
     //VOFA_Init(&huart6); // 初始化VOFA+协议，绑定USART6
-    Laser_Init();
+    Laser_Init();//初始化激光笔
+    Laser_On();
     QD4310_PID_Init();//初始化无刷电机
     HMI_Init();         //串口屏初始化
     Vision_Init(&huart6);//初始化相机串口
     App_Button_Init();//初始化按键
     HAL_TIM_Base_Start_IT(&htim12);//开启定时器12中断，用来扫描按键
     HAL_TIM_Base_Start_IT(&htim11);//开启定时器11中断，用来微秒级计时
+
+    ///////////////////////开启三色灯pwm
+    HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);//蓝
+    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 0);
+    HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);//绿
+    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
+    HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3);//红
+    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, 0);
+
+    uint32_t arr_pwm = __HAL_TIM_GET_AUTORELOAD(&htim5) ;
+    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1,arr_pwm / 5.0 );
+    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2,arr_pwm / 5.0 );
+    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3,arr_pwm / 5.0);
 
     HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);//开启蜂鸣器pwm
     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);//把蜂鸣器占空比设为0
@@ -63,36 +77,46 @@ void DebugTask_Run() {
         PERIODIC_START(MotorTask, 2)
             switch (sys_state) {
             case SYS_IDLE:
+                    task1_flag = 0;
                     // 待机或急停：电机速度设为0
                     // 待机或急停：电机速度设为0
                     QD4310_SetSpeed(&YawMotor, 0);
                     QD4310_SetSpeed(&PitchMotor, 0);
+
                     break;
             case SYS_TASK1:
+                    QD4310_PID_Reset();
+                    task1_flag = 1;//任务一标志位置1
 
                     // 自动识别并对准A4纸中心，保持5s
                      //自己看任务编写
 
                     break;
             case SYS_TASK2:
+                    task1_flag = 0;
                     // 顺序打靶逻辑 (圆形->方形->星形)
                     QD4310_SetSpeed(&YawMotor, 10);//写这个是为了验证串口屏和电机能正常使用，不是任务！
                     break;
             case SYS_TASK3:
+                    task1_flag = 0;
                     // 沿胶带顺时针走一周 (30s)
                     break;
             case SYS_TASK4:
+                    task1_flag = 0;
                     // 动态靶心追踪 (加入前馈/预测算法)
                     break;
             case SYS_TASK5:
+                    task1_flag = 0;
                     // 动态画圆 (同步 6cm 半径)
                     break;
             case SYS_DISABLE:
+                    task1_flag = 0;
                     QD4310_Disable(&YawMotor);
                     QD4310_Disable(&PitchMotor);
                     HAL_Delay(20);
                     break;
             case SYS_ENABLE:
+                    task1_flag = 0;
                     QD4310_Enable(&YawMotor);
                     QD4310_Enable(&PitchMotor);
                     HAL_Delay(20);

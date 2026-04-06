@@ -5,6 +5,9 @@
 
 
 #include "pid.h"
+
+#include <math.h>
+
 #include "delay.h"
 //
 // @简介：对PID控制器进行初始化
@@ -105,6 +108,12 @@ float PID_Compute(PID_TypeDef *PID, float FB)
 	// 积分限幅
 	if(PID->err_int_k_1 > PID->UpperLimit) PID->err_int_k_1 = PID->UpperLimit;
 	if(PID->err_int_k_1 < PID->LowerLimit) PID->err_int_k_1 = PID->LowerLimit;
+
+	// //输出限幅
+	// //当误差小于2的时候不输出（p，d项太大了，一点误差都会让它走很多）
+	// if (fabsf(err) <= 1.5f) {
+	// 	CO = 0.0f;
+	// }
 
 	return CO;
 }

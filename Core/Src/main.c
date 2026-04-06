@@ -112,10 +112,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-
+  while (1) {
     DebugTask_Run();
+    if (task1_flag == 1) {
+      QD4310_PID_Pro();
+    }
+
     // if (task1_flag == 1) {
     //
     // }

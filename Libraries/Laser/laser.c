@@ -7,7 +7,7 @@
 
 void Laser_Init() {
     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-    Laser_Off();
+    Laser_Off();//默认状态下激光笔关闭
 }
 //最高亮度工作
 void Laser_On() {
