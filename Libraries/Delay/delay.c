@@ -1,6 +1,6 @@
 /**
 *@简介：用TIM11计时器来实现微妙计时
-*@作者：AI
+*@作者：高旭
 */
 
 #include "delay.h"
@@ -25,6 +25,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     if (htim->Instance == TIM12) {
         App_Button_Proc();
+
     }
 }
 

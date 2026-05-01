@@ -18,19 +18,21 @@ QD4310_t PitchMotor;
 // 内部发送函数（私有性质）
 static void QD4310_SendCommand(QD4310_t *dev, QD4310_Command_t cmd, int16_t value) {
     uint8_t TxBuffer[3];
-    TxBuffer[0] = (uint8_t)cmd;
+    TxBuffer[0] = (uint8_t)cmd;//第0位是指令类型
+
 
     // 强制类型转换，注意编译器对齐，如果是ARM可能需要memcpy或位运算
     //*(int16_t *)(TxBuffer + 1) = value;
-    TxBuffer[1] = (uint8_t)(value & 0xFF);
+    TxBuffer[1] = (uint8_t)(value & 0xFF);//第一二位是控制量
     TxBuffer[2] = (uint8_t)((value >> 8) & 0xFF);
     // 或者使用memcpy，确保正确处理对齐问题
     //memcpy(&TxBuffer[1], &value, 2);
 
-    uint32_t txMailbox = CAN_TX_MAILBOX0;
+    //控制报文
+    uint32_t txMailbox = CAN_TX_MAILBOX0;//这是用来存储邮箱的
     CAN_TxHeaderTypeDef TxHeader;
     TxHeader.IDE = CAN_ID_STD;
-    TxHeader.RTR = CAN_RTR_DATA;
+    TxHeader.RTR = CAN_RTR_DATA;//代表发送的是数据帧
     TxHeader.StdId = 0x400 + dev->id;
     TxHeader.ExtId = 0x400 + dev->id;
     TxHeader.TransmitGlobalTime = DISABLE;
@@ -75,7 +77,7 @@ void QD4310_SetAngle(QD4310_t *dev, float angle) {
     // float val = CLAMP(angle, 0.0f, 2.0f * QD4310_PI);
     float val = fmodf(angle, 2.0f * QD4310_PI);//取余函数
     if (val < 0) val += 2.0f * QD4310_PI;
-    uint16_t cmd_val = (uint16_t)(val / (2.0f * QD4310_PI) * 65535.0f);
+    uint16_t cmd_val = (uint16_t)(val / (2.0f * QD4310_PI) * 65535.0f);//单位是度
     QD4310_SendCommand(dev, QD4310_CMD_ANGLE, cmd_val);
 }
 
@@ -84,6 +86,7 @@ void QD4310_SetSpeed(QD4310_t *dev, float speed) {
     int16_t cmd_val = (int16_t)(val / 1000.0f * 32767.0f);
     QD4310_SendCommand(dev, QD4310_CMD_SPEED, cmd_val);
 }
+
 
 void QD4310_SetLowSpeed(QD4310_t *dev, float speed) {
     float val = CLAMP(speed, -1000.0f, 1000.0f);
@@ -96,4 +99,3 @@ void QD4310_SetCurrent(QD4310_t *dev, float current) {
     int16_t cmd_val = (int16_t)(val / 10.0f * 32767.0f);
     QD4310_SendCommand(dev, QD4310_CMD_CURRENT, cmd_val);
 }
-

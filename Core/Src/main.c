@@ -51,7 +51,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+volatile uint8_t buzzer_flag = 0;
+uint32_t buzzer_time = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -114,13 +115,35 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1) {
     DebugTask_Run();
-    if (task1_flag == 1) {
-      QD4310_PID_Pro();
-    }
+    if (buzzer_flag == 1) {
+      uint32_t elapsed = HAL_GetTick() - buzzer_time; // 获取已经过去的时间
 
-    // if (task1_flag == 1) {
-    //
-    // }
+      if (elapsed < 1500) {
+        // 阶段 1：等待期（0 - 1.9s）
+        // 保持静默，不要重置 buzzer_flag
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1,0);
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2,0);
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3,0);
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3,0);
+      }
+      else if (elapsed >= 1500 && elapsed < 2100) {
+        // 阶段 2：响铃期（1.9s - 2.1s）
+        uint32_t arr_pwm = __HAL_TIM_GET_AUTORELOAD(&htim5);
+        uint32_t arr_buzzer = __HAL_TIM_GET_AUTORELOAD(&htim4);
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, arr_pwm * 0.2f);
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, arr_pwm * 0.2f);
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, arr_pwm * 0.2f);
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, arr_buzzer * 0.2f);
+      }
+      else {
+        // 阶段 3：结束期（超过 2.1s）
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1, 0);
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2, 0);
+        __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, 0);
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+        buzzer_flag = 0; // 只有流程全部跑完了，才重置标志位
+      }
+    }
 
     /* USER CODE END WHILE */
 
@@ -175,7 +198,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
 /* USER CODE END 4 */
 
 /**

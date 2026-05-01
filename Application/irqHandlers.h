@@ -6,7 +6,6 @@
 #define QD4310_IRQHANDLERS_H
 #include <stdint.h>
 
-extern uint8_t task1_flag;
 void CAN_InterfaceInit();
 void DebugTask_Init();
 void DebugTask_Run();

@@ -39,7 +39,7 @@ extern uint8_t hmi_rx_buf[64];
 void DebugTask_Init() {
     //VOFA_Init(&huart6); // 初始化VOFA+协议，绑定USART6
     Laser_Init();//初始化激光笔
-    Laser_On();
+    Laser_SetBrightness(10);
     QD4310_PID_Init();//初始化无刷电机
     HMI_Init();         //串口屏初始化
     Vision_Init(&huart6);//初始化相机串口
@@ -55,18 +55,15 @@ void DebugTask_Init() {
     HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3);//红
     __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3, 0);
 
-    uint32_t arr_pwm = __HAL_TIM_GET_AUTORELOAD(&htim5) ;
-    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_1,arr_pwm / 5.0 );
-    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_2,arr_pwm / 5.0 );
-    __HAL_TIM_SET_COMPARE(&htim5, TIM_CHANNEL_3,arr_pwm / 5.0);
-
     HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);//开启蜂鸣器pwm
     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);//把蜂鸣器占空比设为0
 
 }
 
 int i = 0;
-uint8_t task1_flag = 0;
+uint8_t task_flag = 0;
+
+uint8_t task[5] = {0x11,0x12,0x13,0x14,0x15};//任务的标志位
 /**
  * @简介： 核心任务代码,记得之后把所有的任务封装成函数（函数的编写可以单独创建一个mytask.c/.h文件）写在这里的case里
  * 记住不要命名为task.c/.h，有命名风险,嘿嘿我已经建了
@@ -74,49 +71,63 @@ uint8_t task1_flag = 0;
  */
 void DebugTask_Run() {
         //电机控制任务 (100Hz),根据屏幕按键的状态来决定电机干嘛
-        PERIODIC_START(MotorTask, 2)
+        PERIODIC_START(MotorTask, 1)
             switch (sys_state) {
             case SYS_IDLE:
-                    task1_flag = 0;
-                    // 待机或急停：电机速度设为0
+                    task_flag = 0;
                     // 待机或急停：电机速度设为0
                     QD4310_SetSpeed(&YawMotor, 0);
                     QD4310_SetSpeed(&PitchMotor, 0);
 
                     break;
             case SYS_TASK1:
-                    QD4310_PID_Reset();
-                    task1_flag = 1;//任务一标志位置1
-
+                    if (task_flag == 0) {
+                        task_flag++;
+                        Vision_SendCommand(task[0],0);
+                    }
+                    QD4310_PID_Pro();
                     // 自动识别并对准A4纸中心，保持5s
                      //自己看任务编写
 
                     break;
             case SYS_TASK2:
-                    task1_flag = 0;
+                    if (task_flag == 0) {
+                        task_flag++;
+                        Vision_SendCommand(task[1],0);
+                    }
                     // 顺序打靶逻辑 (圆形->方形->星形)
-                    QD4310_SetSpeed(&YawMotor, 10);//写这个是为了验证串口屏和电机能正常使用，不是任务！
+                    QD4310_PID_Pro2();
                     break;
             case SYS_TASK3:
-                    task1_flag = 0;
+                    if (task_flag == 0) {
+                        task_flag++;
+                        Vision_SendCommand(task[2],0);
+                    }
                     // 沿胶带顺时针走一周 (30s)
+                    QD4310_PID_Pro();
                     break;
             case SYS_TASK4:
-                    task1_flag = 0;
+                    if (task_flag == 0) {
+                        task_flag++;
+                        Vision_SendCommand(task[3],0);
+                    }
                     // 动态靶心追踪 (加入前馈/预测算法)
+                    QD4310_PID_Pro_Extend();
                     break;
             case SYS_TASK5:
-                    task1_flag = 0;
+                    if (task_flag == 0) {
+                        task_flag++;
+                        Vision_SendCommand(task[4],0);
+                    }
                     // 动态画圆 (同步 6cm 半径)
+                    QD4310_PID_Pro_Extend();
                     break;
             case SYS_DISABLE:
-                    task1_flag = 0;
                     QD4310_Disable(&YawMotor);
                     QD4310_Disable(&PitchMotor);
                     HAL_Delay(20);
                     break;
             case SYS_ENABLE:
-                    task1_flag = 0;
                     QD4310_Enable(&YawMotor);
                     QD4310_Enable(&PitchMotor);
                     HAL_Delay(20);
@@ -214,9 +225,13 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
         else if (strstr(buf, "CMD_T4")) { sys_state = SYS_TASK4; HMI_SetText("State", "Task 4"); }
         else if (strstr(buf, "CMD_T5")) { sys_state = SYS_TASK5; HMI_SetText("State", "Task 5"); }
         else if (strstr(buf, "CMD_DISABLE")){ sys_state = SYS_DISABLE;HMI_SetText("State", "DISABLE");}
-        else if (strstr(buf, "CMD_ENABLE")){ sys_state = SYS_ENABLE;HMI_SetText("State", "ENABLE");}
+        else if (strstr(buf, "CMD_ENABLE")){ sys_state = SYS_ENABLE;HMI_SetText("State", "ENABLE");
+            __disable_irq();
+             g_vision.dx = 0;
+             g_vision.dy = 0;
+            __enable_irq();}
         // 激光笔开关
-        else if (strstr(buf, "LASER_ON"))  Laser_On();
+        else if (strstr(buf, "LASER_ON"))  Laser_SetBrightness(10);
         else if (strstr(buf, "LASER_OFF")) Laser_Off();
         else if (strstr(buf, "CMD_STOP")) {
             sys_state = SYS_IDLE;
