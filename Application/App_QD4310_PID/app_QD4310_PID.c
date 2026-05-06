@@ -86,12 +86,12 @@ void QD4310_PID_Init(void) {
     Kf_pitch = 0.0;
 
 
-    __Kp_yaw = 0.15;
+    __Kp_yaw = 0.20;
     __Ki_yaw = 0.0;
     __Kd_yaw = 0.00; // 尝试给一点Kd作为刹车
     __Kf_yaw = 0.0;  // 刚开始先设为0，等PD调稳了再加前馈
 
-    __Kp_pitch = 0.21;
+    __Kp_pitch = 0.23;
     __Ki_pitch = 0.0;
     __Kd_pitch = 0.00;
     __Kf_pitch = 0.0;
@@ -251,73 +251,73 @@ void QD4310_PID_Pro2(void) {
     }
 }
 
-//加了前馈的
- void QD4310_PID_Pro_Extend(void) {
-     QD4310_Vaild_Update();
-
-     // 1. 更新视觉速度
-     Vision_Velocity_Update_Improved();
-
-     QD4310_PID_Update_yaw(&__pid_motor_yaw);
-     QD4310_PID_Update_pitch(&__pid_motor_pitch);
-
-     if (valid == 0) {
-         QD4310_SetSpeed(&YawMotor, 0);
-         QD4310_SetSpeed(&PitchMotor, 0);
-         PID_Reset(&__pid_motor_yaw);
-         PID_Reset(&__pid_motor_pitch);
-     } else {
-         // 2. PID 计算 (处理当前的像素偏差)
-         float yaw_pid_out = PID_Compute_YAW(&__pid_motor_yaw, laser_current_yaw);
-         float pitch_pid_out = PID_Compute_Pitch(&__pid_motor_pitch, laser_current_pitch);
-
-         // 3. 前馈计算 (弥补目标运动导致的滞后)
-         // Kf 的物理意义：每单位像素/秒的运动，需要补偿多少电机转速
-         // 需要根据实际测试调整，建议先从 0.001 开始
-         __Kf_yaw = 0.00f;   // 举例值
-         __Kf_pitch = 0.00f; // 举例值
-
-         float yaw_ff = vision_vx * __Kf_yaw;
-         float pitch_ff = vision_vy * __Kf_pitch;
-
-         // 4. 最终输出 = PID输出 + 前馈输出
-         yaw_speed = yaw_pid_out + yaw_ff;
-         pitch_speed = pitch_pid_out + pitch_ff;
-
-         QD4310_SetSpeed(&YawMotor, yaw_speed);
-         QD4310_SetSpeed(&PitchMotor, pitch_speed);
-     }
- }
-
-// void QD4310_PID_Pro_Extend(void) {
-//     // 1. 更新视觉有效位
-//     QD4310_Vaild_Update();
-//     yaw_speed = 0;
-//     pitch_speed = 0;
-//     // 2. 【核心更新】调用测速函数，更新 vision_vx 和 vision_vy
-//     // 必须在 PID 计算前调用，确保前馈使用的是最新速度
-//     //Vision_Velocity_Update();
+// //加了前馈的
+//  void QD4310_PID_Pro_Extend(void) {
+//      QD4310_Vaild_Update();
 //
-//     QD4310_PID_Update_yaw(&__pid_motor_yaw); //先更新yaw轴和pitch轴的数据
-//     QD4310_PID_Update_pitch(&__pid_motor_pitch);
+//      // 1. 更新视觉速度
+//      Vision_Velocity_Update_Improved();
 //
-//     buzzer_flag = 0;
-//     //再进行pid计算
-//     if (valid == 0) {
-//         //如果没识别到矩形框，视为无效。在此时将电机速度设为0并且复位pid，防止之前的积分项影响下一次目标识别
-//         QD4310_SetSpeed(&YawMotor, 0);
-//         QD4310_SetSpeed(&PitchMotor, 0);
-//         PID_Reset(&__pid_motor_yaw);
-//         PID_Reset(&__pid_motor_pitch);
-//     } else if (valid == 1) {
-//         yaw_speed = PID_Compute_YAW(&__pid_motor_yaw, laser_current_yaw); //这个的pid加上了输出限幅
-//         QD4310_SetSpeed(&YawMotor, yaw_speed);
+//      QD4310_PID_Update_yaw(&__pid_motor_yaw);
+//      QD4310_PID_Update_pitch(&__pid_motor_pitch);
 //
-//         pitch_speed = PID_Compute(&__pid_motor_pitch, laser_current_pitch);
-//         QD4310_SetSpeed(&PitchMotor, pitch_speed);
+//      if (valid == 0) {
+//          QD4310_SetSpeed(&YawMotor, 0);
+//          QD4310_SetSpeed(&PitchMotor, 0);
+//          PID_Reset(&__pid_motor_yaw);
+//          PID_Reset(&__pid_motor_pitch);
+//      } else {
+//          // 2. PID 计算 (处理当前的像素偏差)
+//          float yaw_pid_out = PID_Compute_YAW(&__pid_motor_yaw, laser_current_yaw);
+//          float pitch_pid_out = PID_Compute_Pitch(&__pid_motor_pitch, laser_current_pitch);
 //
-//     }
-// }
+//          // 3. 前馈计算 (弥补目标运动导致的滞后)
+//          // Kf 的物理意义：每单位像素/秒的运动，需要补偿多少电机转速
+//          // 需要根据实际测试调整，建议先从 0.001 开始
+//          __Kf_yaw = 0.00f;   // 举例值
+//          __Kf_pitch = 0.00f; // 举例值
+//
+//          float yaw_ff = vision_vx * __Kf_yaw;
+//          float pitch_ff = vision_vy * __Kf_pitch;
+//
+//          // 4. 最终输出 = PID输出 + 前馈输出
+//          yaw_speed = yaw_pid_out + yaw_ff;
+//          pitch_speed = pitch_pid_out + pitch_ff;
+//
+//          QD4310_SetSpeed(&YawMotor, yaw_speed);
+//          QD4310_SetSpeed(&PitchMotor, pitch_speed);
+//      }
+//  }
+
+void QD4310_PID_Pro_Extend(void) {
+    // 1. 更新视觉有效位
+    QD4310_Vaild_Update();
+    yaw_speed = 0;
+    pitch_speed = 0;
+    // 2. 【核心更新】调用测速函数，更新 vision_vx 和 vision_vy
+    // 必须在 PID 计算前调用，确保前馈使用的是最新速度
+    //Vision_Velocity_Update();
+
+    QD4310_PID_Update_yaw(&__pid_motor_yaw); //先更新yaw轴和pitch轴的数据
+    QD4310_PID_Update_pitch(&__pid_motor_pitch);
+
+    buzzer_flag = 0;
+    //再进行pid计算
+    if (valid == 0) {
+        //如果没识别到矩形框，视为无效。在此时将电机速度设为0并且复位pid，防止之前的积分项影响下一次目标识别
+        QD4310_SetSpeed(&YawMotor, 0);
+        QD4310_SetSpeed(&PitchMotor, 0);
+        PID_Reset(&__pid_motor_yaw);
+        PID_Reset(&__pid_motor_pitch);
+    } else if (valid == 1) {
+        yaw_speed = PID_Compute_YAW(&__pid_motor_yaw, laser_current_yaw); //这个的pid加上了输出限幅
+        QD4310_SetSpeed(&YawMotor, yaw_speed);
+
+        pitch_speed = PID_Compute(&__pid_motor_pitch, laser_current_pitch);
+        QD4310_SetSpeed(&PitchMotor, pitch_speed);
+
+    }
+}
 
 //
 // @简介：执行一次PID运算

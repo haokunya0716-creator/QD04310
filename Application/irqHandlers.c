@@ -27,6 +27,7 @@ typedef enum {
     SYS_TASK4,        // 4. 动态靶心追踪 (发挥1)
     SYS_TASK3,        // 3. 指定图形绘制
     SYS_TASK5,        // 5. 动态轨迹同步绘制 (发挥2)
+    SYS_SETCENTER,    //用来给相机标定
     SYS_DISABLE,
     SYS_ENABLE,
 } SystemState_t;
@@ -63,7 +64,7 @@ void DebugTask_Init() {
 int i = 0;
 uint8_t task_flag = 0;
 
-uint8_t task[5] = {0x11,0x12,0x13,0x14,0x15};//任务的标志位
+uint8_t task[6] = {0x11,0x12,0x13,0x14,0x15,0x99};//任务的标志位
 /**
  * @简介： 核心任务代码,记得之后把所有的任务封装成函数（函数的编写可以单独创建一个mytask.c/.h文件）写在这里的case里
  * 记住不要命名为task.c/.h，有命名风险,嘿嘿我已经建了
@@ -121,6 +122,13 @@ void DebugTask_Run() {
                     }
                     // 动态画圆 (同步 6cm 半径)
                     QD4310_PID_Pro_Extend();
+                    break;
+            case SYS_SETCENTER:
+                    //点击标定按钮时，执行相机校准
+                    if (task_flag == 0) {
+                        task_flag++;
+                        Vision_SendCommand(task[5],0);
+                    }
                     break;
             case SYS_DISABLE:
                     QD4310_Disable(&YawMotor);
@@ -230,8 +238,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
              g_vision.dx = 0;
              g_vision.dy = 0;
             __enable_irq();}
+        else if (strstr(buf, "Calibrate"))  Vision_SendCommand(0x99,0);//标志相机开始校准
+        else if (strstr(buf, "OK")) Vision_SendCommand(0x01,0);
         // 激光笔开关
-        else if (strstr(buf, "LASER_ON"))  Laser_SetBrightness(10);
+        else if (strstr(buf, "LASER_ON"))  Laser_SetBrightness(100);
+        else if (strstr(buf, "LASER_Normal"))  Laser_SetBrightness(10);
         else if (strstr(buf, "LASER_OFF")) Laser_Off();
         else if (strstr(buf, "CMD_STOP")) {
             sys_state = SYS_IDLE;
