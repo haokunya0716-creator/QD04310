@@ -60,6 +60,8 @@ extern uint32_t buzzer_time;
 void QD4310_PID_Reset(void) {
     PID_Reset(&pid_motor_pitch);
     PID_Reset(&pid_motor_yaw);
+    PID_Reset(&__pid_motor_yaw);
+    PID_Reset(&__pid_motor_pitch);
 }
 
 void QD4310_PID_Init(void) {
@@ -87,13 +89,13 @@ void QD4310_PID_Init(void) {
 
 
     __Kp_yaw = 0.20;
-    __Ki_yaw = 0.0;
-    __Kd_yaw = 0.00; // 尝试给一点Kd作为刹车
+    __Ki_yaw = 0.002;
+    __Kd_yaw = 0.0041; // 尝试给一点Kd作为刹车
     __Kf_yaw = 0.0;  // 刚开始先设为0，等PD调稳了再加前馈
 
     __Kp_pitch = 0.23;
-    __Ki_pitch = 0.0;
-    __Kd_pitch = 0.00;
+    __Ki_pitch = 0.1;
+    __Kd_pitch = 0.005;
     __Kf_pitch = 0.0;
     //任务1，2，3的
     PID_Init(&pid_motor_pitch, Kp_pitch, Ki_pitch, Kd_pitch);

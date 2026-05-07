@@ -117,6 +117,7 @@ void DebugTask_Run() {
                     break;
             case SYS_TASK5:
                     if (task_flag == 0) {
+                        QD4310_PID_Reset();
                         task_flag++;
                         Vision_SendCommand(task[4],0);
                     }
